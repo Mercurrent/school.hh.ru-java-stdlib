@@ -4,15 +4,17 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class Server {
-  public Server(InetSocketAddress addr) {
-    throw new UnsupportedOperationException();
-  }
+    protected final InetSocketAddress addr;
 
-  public void run() throws IOException {
-    throw new UnsupportedOperationException();
-  }
+    public Server(InetSocketAddress addr) {
+        this.addr = addr;
+    }
 
-  public int getPort() {
-    throw new UnsupportedOperationException();
-  }
+    public void run() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    public int getPort() {
+        return addr.getPort();
+    }
 }
