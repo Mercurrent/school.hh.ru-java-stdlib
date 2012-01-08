@@ -12,6 +12,7 @@ public class Server {
 
     public void run() throws IOException {
         throw new UnsupportedOperationException();
+        // todo to make listening cycle with call of the ConnectionHandler.
     }
 
     public int getPort() {
