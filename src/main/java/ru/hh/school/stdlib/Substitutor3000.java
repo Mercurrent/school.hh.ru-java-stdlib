@@ -37,6 +37,6 @@ public class Substitutor3000 {
     public synchronized String get(String key) {
         String valueString = internalMap.get(key);
         String resultString = transformValueString(valueString);
-        //todo to write get
+        return resultString;
     }
 }
