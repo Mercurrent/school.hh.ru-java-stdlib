@@ -43,7 +43,7 @@ public class Substitutor3000Test {
         target.put("b", "df}a");
         Assert.assertEquals("df}a", target.get("b"));
         
-        target.put("n", "a$(b)h}af");
+        target.put("n", "a${b}h}af");
         Assert.assertEquals("adf}ah}af", target.get("n"));
     }
 
