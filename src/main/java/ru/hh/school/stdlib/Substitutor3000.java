@@ -20,7 +20,7 @@ public class Substitutor3000 {
                 fromIndex = closingBraceIndex + 1;
             } else {
                 result.append(valueString.substring(openingBraceIndex));
-                fromIndex = valueString.length() - 1;
+                fromIndex = valueString.length();
             }
             openingBraceIndex = valueString.indexOf("${", fromIndex);
         }
