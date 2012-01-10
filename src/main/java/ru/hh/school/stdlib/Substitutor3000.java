@@ -6,7 +6,7 @@ import java.util.Map;
 public class Substitutor3000 {
     private final Map<String, String> internalMap = new HashMap<String, String>();
 
-    protected String transformValueString(String valueString) {
+    protected String transformValueString(final String valueString) {
         int fromIndex = 0;
 
         final StringBuilder result = new StringBuilder();
