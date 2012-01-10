@@ -23,6 +23,13 @@ public class Substitutor3000Test {
     }
     
     @Test
+    public void notContainedKey() {
+        final Substitutor3000 target = new Substitutor3000();
+        
+        Assert.assertEquals("", target.get("a"));
+    }
+    
+    @Test
     public void openingWithoutEnding() {
         final Substitutor3000 target = new Substitutor3000();
 
