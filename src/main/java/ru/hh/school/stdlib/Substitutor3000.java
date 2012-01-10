@@ -7,10 +7,14 @@ public class Substitutor3000 {
     private final Map<String, String> internalMap = new HashMap<String, String>();
 
     protected String transformValueString(final String valueString) {
-        int fromIndex = 0;
+        if (valueString == null) {
+            return "";
+        }
 
         final StringBuilder result = new StringBuilder();
-        
+
+        int fromIndex = 0;
+
         int openingBraceIndex = valueString.indexOf("${", fromIndex);
         while (openingBraceIndex != -1) {
             result.append(valueString, fromIndex, openingBraceIndex);
