@@ -21,4 +21,42 @@ public class Substitutor3000Test {
 
         Assert.assertEquals("bla--bla", sbst.get("k"));
     }
+    
+    @Test
+    public void openingWithoutEnding() {
+        final Substitutor3000 target = new Substitutor3000();
+
+        target.put("a", "a${bv");
+        Assert.assertEquals("a${bv", target.get("a"));
+
+        target.put("a", "a${");
+        Assert.assertEquals("a${", target.get("a"));
+
+        target.put("a", "${be-be");
+        Assert.assertEquals("${be-be", target.get("a"));
+    }
+    
+    @Test
+    public void endingWithoutOpening() {
+        final Substitutor3000 target = new Substitutor3000();
+        
+        target.put("b", "df}a");
+        Assert.assertEquals("df}a", target.get("b"));
+        
+        target.put("n", "a$(b)h}af");
+        Assert.assertEquals("adf}ah}af", target.get("n"));
+    }
+
+    @Test
+    public void nestedBraces() {
+        final Substitutor3000 target = new Substitutor3000();
+        
+        target.put("a", "one");
+        target.put("b", "a${a${b}}");
+        
+        Assert.assertEquals("a}", target.get("b"));
+        
+        target.put("a${b", "c");
+        Assert.assertEquals("ac}", target.get("b"));
+    }
 }
