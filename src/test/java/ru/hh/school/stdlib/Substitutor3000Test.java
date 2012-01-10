@@ -53,10 +53,21 @@ public class Substitutor3000Test {
         
         target.put("a", "one");
         target.put("b", "a${a${b}}");
-        
         Assert.assertEquals("a}", target.get("b"));
         
         target.put("a${b", "c");
         Assert.assertEquals("ac}", target.get("b"));
+    }
+
+    @Test
+    public void recursion() {
+        final Substitutor3000 target = new Substitutor3000();
+        
+        target.put("a", "c${a}");
+        Assert.assertEquals("cc${a}", target.get("a"));
+        
+        target.put("a1", "b${a2}");
+        target.put("a2", "c${a1}");
+        Assert.assertEquals("bc${a1}", target.get("a1"));
     }
 }
