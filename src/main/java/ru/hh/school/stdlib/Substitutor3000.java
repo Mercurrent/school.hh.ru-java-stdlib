@@ -2,7 +2,6 @@ package ru.hh.school.stdlib;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class Substitutor3000 {
     private final Map<String, String> internalMap = new HashMap<String, String>();
@@ -35,8 +34,6 @@ public class Substitutor3000 {
     }
 
     public synchronized String get(String key) {
-        String valueString = internalMap.get(key);
-        String resultString = transformValueString(valueString);
-        return resultString;
+        return transformValueString(internalMap.get(key));
     }
 }
