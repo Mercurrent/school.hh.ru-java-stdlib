@@ -16,7 +16,10 @@ public class Substitutor3000 {
             result.append(valueString, fromIndex, openingBraceIndex);
             int closingBraceIndex = valueString.indexOf("}", fromIndex);
             if (closingBraceIndex != -1) {
-                result.append(internalMap.get(valueString.substring(openingBraceIndex + 2, closingBraceIndex)));
+                String nextPiece = internalMap.get(valueString.substring(openingBraceIndex + 2, closingBraceIndex));
+                if (nextPiece != null) {
+                    result.append(nextPiece);
+                }
                 fromIndex = closingBraceIndex + 1;
             } else {
                 result.append(valueString.substring(openingBraceIndex));
