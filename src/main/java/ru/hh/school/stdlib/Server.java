@@ -2,6 +2,8 @@ package ru.hh.school.stdlib;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Server {
     protected final InetSocketAddress addr;
@@ -11,8 +13,26 @@ public class Server {
     }
 
     public void run() throws IOException {
-        throw new UnsupportedOperationException();
-        // todo to make listening cycle with call of the ConnectionHandler.
+
+        final ServerSocket serverSocket = new ServerSocket(addr.getPort(), 0, addr.getAddress());
+        final Substitutor3000 substitutor = new Substitutor3000();
+
+        //noinspection InfiniteLoopStatement
+        while (true) {
+            final Socket clientSocket;
+
+            try {
+                clientSocket = serverSocket.accept();
+            } catch (IOException ex) {
+                System.err.println("An I/O error occurs when waiting for a connection: " + ex.getMessage() + ".");
+                continue;
+            } catch (SecurityException ex) {
+                System.err.println("Security manager doesn't allow to open the connection: " + ex.getMessage() + ".");
+                continue;
+            }
+
+            new Thread(new ConnectionHandler(clientSocket, substitutor)).start();
+        }
     }
 
     public int getPort() {
