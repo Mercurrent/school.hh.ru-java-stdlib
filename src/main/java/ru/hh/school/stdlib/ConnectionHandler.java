@@ -62,7 +62,7 @@ public class ConnectionHandler implements Runnable {
                         if (parser.hasMoreTokens()) {
                             String key = parser.nextToken();
                             if (parser.hasMoreTokens()) {
-                                String value = parser.nextToken();
+                                String value = parser.nextToken("");
                                 substitutor.put(key, value);
                                 output.write("OK");
                             } else {
