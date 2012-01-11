@@ -28,7 +28,7 @@ public class ConnectionHandler implements Runnable {
                 output = new OutputStreamWriter(socket.getOutputStream());
                 input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             } catch (IOException ex) {
-                System.err.println("Unable to get input or output stream of the given socket.");
+                System.err.println("ERROR: Unable to get input or output stream of the given socket.");
                 return;
             }
 
@@ -36,7 +36,7 @@ public class ConnectionHandler implements Runnable {
             try{
                 currentLine = input.readLine();
             } catch (IOException ex) {
-                System.err.println("Unable to read from input stream of the given socket.");
+                System.err.println("ERROR: Unable to read from input stream of the given socket.");
                 return;
             }
 
@@ -46,48 +46,67 @@ public class ConnectionHandler implements Runnable {
                 if (parser.hasMoreTokens()) {
                     String commandName = parser.nextToken();
                     if (commandName.equals("GET")) {
-                        if (parser.hasMoreTokens()) {
-                            String key = parser.nextToken();
-                            String getAnswer = substitutor.get(key);
-                            if (getAnswer.equals("") && parser.hasMoreTokens()) {
-                                String defaultValue = parser.nextToken();
-                                substitutor.put(key, defaultValue);
-                            }
-                            output.write("VALUE");
-                            output.write(getAnswer);
-                        } else {
-                            System.err.println("Command GET needs a key.");
-                        }
+                        performGetAction(parser, output);
                     } else if (commandName.equals("PUT")) {
-                        if (parser.hasMoreTokens()) {
-                            String key = parser.nextToken();
-                            if (parser.hasMoreTokens()) {
-                                String value = parser.nextToken("");
-                                substitutor.put(key, value);
-                                output.write("OK");
-                            } else {
-                                System.err.println("Command PUT needs value for key " + key + ".");
-                            }
-                        } else {
-                            System.err.println("Command PUT needs arguments.");
-                        }
-
+                        performPutAction(parser, output);
                     } else if (commandName.equals("SET")) {
-
+                        performSetAction(parser, output);
                     } else {
-                        System.err.println("Command " + commandName + " doesn't exist.");
+                        System.err.println("ERROR: Command " + commandName + " doesn't exist.");
                     }
+                    output.flush();
                 } else {
-                    System.err.println("Empty input string.");
+                    System.err.println("ERROR: Empty input string.");
                 }
             } catch (IOException ex) {
-                System.err.println("Unable to write to output stream of socket.");
+                System.err.println("ERROR: Unable to write to the output stream of the socket.");
             }
         } finally {
             try {
+                System.out.println("INFO: Connection with " + socket.getRemoteSocketAddress() + " is closing.");
+
                 socket.close();
             } catch (IOException ignored) {
             }
         }
+    }
+
+    protected void performGetAction(final StringTokenizer parser, final Writer output) throws IOException {
+        System.out.println("INFO: Get action is performing.");
+        
+        if (parser.hasMoreTokens()) {
+            final String key = parser.nextToken();
+            String answer = substitutor.get(key);
+            if ("".equals(answer) && parser.hasMoreTokens()) {
+                answer = parser.nextToken();
+            }
+            output.write("VALUE");
+            output.write(answer);
+        } else {
+            System.err.println("ERROR: Command GET needs a key.");
+        }
+    }
+
+    protected void performPutAction(final StringTokenizer parser, final Writer output) throws IOException {
+        System.out.println("INFO: Put action is performing.");
+
+        if (parser.hasMoreTokens()) {
+            final String key = parser.nextToken();
+            if (parser.hasMoreTokens()) {
+                final String value = parser.nextToken("");
+                substitutor.put(key, value);
+                output.write("OK");
+            } else {
+                System.err.println("ERROR: Command PUT needs value for key " + key + ".");
+            }
+        } else {
+            System.err.println("ERROR: Command PUT needs arguments.");
+        }
+    }
+
+    protected void performSetAction(final StringTokenizer parser, final Writer output) throws IOException {
+        System.out.println("INFO: Set action is performing.");
+
+        // todo to implement.
     }
 }
