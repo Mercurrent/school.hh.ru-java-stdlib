@@ -57,7 +57,6 @@ public class ConnectionHandler implements Runnable {
                             output.write(getAnswer);
                         } else {
                             System.err.println("Command GET needs a key.");
-                            return;
                         }
                     } else if (commandName.equals("PUT")) {
                         if (parser.hasMoreTokens()) {
@@ -68,29 +67,22 @@ public class ConnectionHandler implements Runnable {
                                 output.write("OK");
                             } else {
                                 System.err.println("Command PUT needs value for key " + key + ".");
-                                return;
                             }
                         } else {
                             System.err.println("Command PUT needs arguments.");
-                            return;
                         }
 
                     } else if (commandName.equals("SET")) {
 
                     } else {
                         System.err.println("Command " + commandName + " doesn't exist.");
-                        return;
                     }
                 } else {
                     System.err.println("Empty input string.");
-                    return;
                 }
             } catch (IOException ex) {
                 System.err.println("Unable to write to output stream of socket.");
-                return;
             }
-            
-            // todo to implement the handling.
         } finally {
             try {
                 socket.close();
