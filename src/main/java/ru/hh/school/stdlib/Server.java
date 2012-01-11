@@ -24,12 +24,13 @@ public class Server {
             try {
                 clientSocket = serverSocket.accept();
             } catch (IOException ex) {
-                System.err.println("An I/O error occurs when waiting for a connection: " + ex.getMessage() + ".");
+                System.err.println("ERROR: An I/O error occurs when waiting for a connection: " + ex.getMessage() + ".");
                 continue;
             } catch (SecurityException ex) {
-                System.err.println("Security manager doesn't allow to open the connection: " + ex.getMessage() + ".");
+                System.err.println("ERROR: Security manager doesn't allow to open the connection: " + ex.getMessage() + ".");
                 continue;
             }
+            System.out.println("INFO: Connection with " + clientSocket.getRemoteSocketAddress() + " is established.");
 
             new Thread(new ConnectionHandler(clientSocket, substitutor)).start();
         }
