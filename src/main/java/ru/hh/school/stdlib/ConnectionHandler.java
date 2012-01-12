@@ -33,31 +33,31 @@ public class ConnectionHandler implements Runnable {
             }
 
             String currentLine;
-            try{
-                currentLine = input.readLine();
-            } catch (IOException ex) {
-                System.err.println("ERROR: Unable to read from input stream of the given socket.");
-                return;
-            }
+            StringTokenizer parser;
 
-            StringTokenizer parser = new StringTokenizer(currentLine);
-
-            try{
-                if (parser.hasMoreTokens()) {
-                    String commandName = parser.nextToken();
-                    if (commandName.equals("GET")) {
-                        performGetAction(parser, output);
-                    } else if (commandName.equals("PUT")) {
-                        performPutAction(parser, output);
-                    } else if (commandName.equals("SET")) {
-                        performSetAction(parser, output);
-                    } else {
-                        System.err.println("ERROR: Command " + commandName + " doesn't exist.");
-                    }
-                    output.flush();
-                } else {
-                    System.err.println("ERROR: Empty input string.");
+            do {
+                try {
+                    currentLine = input.readLine();
+                } catch (IOException ex) {
+                    System.err.println("ERROR: Unable to read from input stream of the given socket.");
+                    return;
                 }
+                parser = new StringTokenizer(currentLine);
+            } while (!parser.hasMoreTokens());
+
+            try {
+                String commandName = parser.nextToken();
+                if (commandName.equals("GET")) {
+                    performGetAction(parser, output);
+                } else if (commandName.equals("PUT")) {
+                    performPutAction(parser, output);
+                } else if (commandName.equals("SET")) {
+                    performSetAction(parser, output);
+                } else {
+                    System.err.println("ERROR: Command " + commandName + " doesn't exist.");
+                    output.write("ERROR: Command " + commandName + " doesn't exist.\n");
+                }
+                output.flush();
             } catch (IOException ex) {
                 System.err.println("ERROR: Unable to write to the output stream of the socket.");
             }
@@ -85,6 +85,7 @@ public class ConnectionHandler implements Runnable {
             output.write("\n");
         } else {
             System.err.println("ERROR: Command GET needs a key.");
+            output.write("ERROR: Command GET needs a key.\n");
         }
     }
 
@@ -99,9 +100,11 @@ public class ConnectionHandler implements Runnable {
                 output.write("OK\n");
             } else {
                 System.err.println("ERROR: Command PUT needs value for key " + key + ".");
+                output.write("ERROR: Command PUT needs value for key " + key + ".\n");
             }
         } else {
             System.err.println("ERROR: Command PUT needs arguments.");
+            output.write("ERROR: Command PUT needs arguments.\n");
         }
     }
 
@@ -115,18 +118,29 @@ public class ConnectionHandler implements Runnable {
                     final String timeSleepString = parser.nextToken();
                     try {
                         int timeSleep = Integer.parseInt(timeSleepString);
+                        if (timeSleep < 0) {
+                            System.err.println("ERROR: Command SET SLEEP requires a positive integer value.");
+                            output.write("ERROR: Command SET SLEEP requires a positive integer value.\n");
+                        } else {
+                            substitutor.setSleepTime(timeSleep);
+                            output.write("OK\n");
+                        }
                     } catch (NumberFormatException ex) {
                         System.err.println("ERROR: Command SET SLEEP requires an integer value.");
+                        output.write("ERROR: Command SET SLEEP requires an integer value.\n");
                     }
 
                 } else {
                     System.err.println("ERROR: Command SET SLEEP requires value.");
+                    output.write("ERROR: Command SET SLEEP requires value.\n");
                 }
             } else {
-                System.err.println("ERROR: Command SET doesn't exist.");
+                System.err.println("ERROR: Command SET " + sleep + " doesn't exist.");
+                output.write("ERROR: Command SET " + sleep + " doesn't exist.\n");
             }
         } else {
-
+            System.err.println("ERROR: Command SET requires arguments.");
+            output.write("ERROR: Command SET requires arguments.\n");
         }
 
         // todo to implement.
