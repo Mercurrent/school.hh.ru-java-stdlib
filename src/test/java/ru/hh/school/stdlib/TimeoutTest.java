@@ -3,6 +3,7 @@ package ru.hh.school.stdlib;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
@@ -13,8 +14,7 @@ import java.util.Set;
  * Date: 12.01.12
  * Time: 22:30
  */
-
-public class TimeoutTest {
+public class TimeoutTest extends BaseFunctionalTest {
     public static final int ASKING_PERIOD = 500;
     public static final int MAX_CONNECTED_TIME = 11000;
 
@@ -30,7 +30,7 @@ public class TimeoutTest {
                     try {
                         final long startTime = System.currentTimeMillis();
 
-                        final Socket connectionSocket = new Socket("127.0.0.1", 9129);
+                        final Socket connectionSocket = connect();
 
                         while (!connectionSocket.isClosed()) {
                             Thread.sleep(ASKING_PERIOD);
