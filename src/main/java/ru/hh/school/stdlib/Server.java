@@ -7,18 +7,27 @@ import java.net.Socket;
 
 public class Server {
     protected final InetSocketAddress addr;
+    protected ServerSocket serverSocket;
+
+    private boolean shouldRun = true;
 
     public Server(InetSocketAddress addr) {
         this.addr = addr;
     }
 
     public void run() throws IOException {
-
-        final ServerSocket serverSocket = new ServerSocket(addr.getPort(), 0, addr.getAddress());
+        synchronized (this) {
+            if (serverSocket != null) {
+                serverSocket = new ServerSocket(addr.getPort(), 0, addr.getAddress());
+            } else {
+                System.err.println("ERROR: Duplicate running of the same server object.");
+                return;
+            }
+        }
         final Substitutor3000 substitutor = new Substitutor3000();
 
         //noinspection InfiniteLoopStatement
-        while (true) {
+        while (shouldRun) {
             final Socket clientSocket;
 
             try {
@@ -36,7 +45,15 @@ public class Server {
         }
     }
 
-    public int getPort() {
-        return addr.getPort();
+    public synchronized void stop() {
+        shouldRun = false;
+
+        if (serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException ex) {
+                System.err.println("ERROR: Unable to close the server socket.");
+            }
+        }
     }
 }
