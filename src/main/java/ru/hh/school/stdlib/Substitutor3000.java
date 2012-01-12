@@ -5,7 +5,17 @@ import java.util.Map;
 
 public class Substitutor3000 {
     private final Map<String, String> internalMap = new HashMap<String, String>();
-    private int timeSleep = 0;
+    private int sleepTime = 0;
+
+    public synchronized int getSleepTime() {
+        int sleepTime = this.sleepTime;
+        this.sleepTime = 0;
+        return sleepTime;
+    }
+
+    public synchronized void setSleepTime(int sleepTime) {
+        this.sleepTime = sleepTime;
+    }
 
     protected String transformValueString(final String valueString) {
         if (valueString == null) {
