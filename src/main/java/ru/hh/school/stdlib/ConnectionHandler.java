@@ -35,7 +35,6 @@ public class ConnectionHandler implements Runnable {
             }
 
             final Object waitingSyncObject = new Object();
-            final Object writingSyncObject = new Object();
 
             final StringTokenizer[] parserHolder = new StringTokenizer[1];
             new Thread() {
@@ -48,7 +47,7 @@ public class ConnectionHandler implements Runnable {
                             System.err.println("ERROR: Unable to read from input stream of the given socket.");
                             return;
                         }
-                        synchronized (writingSyncObject) {
+                        synchronized (parserHolder) {
                             parserHolder[0] = new StringTokenizer(currentLine);
                         }
                     } while (!parserHolder[0].hasMoreTokens());
@@ -70,7 +69,7 @@ public class ConnectionHandler implements Runnable {
 
             final StringTokenizer parser;
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (writingSyncObject) {
+            synchronized (parserHolder) {
                 parser = parserHolder[0];
             }
 
