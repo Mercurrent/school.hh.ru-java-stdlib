@@ -42,8 +42,10 @@ public class TimeoutTest extends BaseFunctionalTest {
                 public void run() {
                     try {
                         final Object waitingSyncObject = new Object();
-                        final Long[] workingTimeArr = new Long[1];
+
+                        final Socket[] connectionSocketArr = new Socket[1];
                         
+                        final Long[] workingTimeArr = new Long[1];
                         workingTimeArr[0] = -1L;
                         
                         new Thread() {
@@ -53,11 +55,13 @@ public class TimeoutTest extends BaseFunctionalTest {
                                 final Socket connectionSocket;
                                 try {
                                     connectionSocket = connect();
-                                    connectionSocket.getOutputStream();
                                 } catch (IOException ex) {
                                     ex.printStackTrace();
                                     setFalseStatus(successStatus);
                                     throw new RuntimeException(ex);
+                                }
+                                synchronized (connectionSocketArr) {
+                                    connectionSocketArr[0] = connectionSocket;
                                 }
 
                                 final BufferedReader input;
@@ -68,7 +72,12 @@ public class TimeoutTest extends BaseFunctionalTest {
                                     throw new RuntimeException(ex);
                                 }
                                 try {
-                                    input.readLine();
+                                    final String serverAnswer = input.readLine();
+                                    
+                                    if (serverAnswer != null) {
+                                        // Server has answered but shouldn't.
+                                        setFalseStatus(successStatus);
+                                    }
                                 } catch (IOException ignored) {
                                     // Going here means that socket's input stream is closed.
                                 }
@@ -87,6 +96,15 @@ public class TimeoutTest extends BaseFunctionalTest {
                         synchronized (waitingSyncObject) {
                             // Upper bound of time.
                             waitingSyncObject.wait(EXPECTED_TIMEOUT + ACCEPTABLE_ADDITIONAL_WAITING);
+                        }
+
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (connectionSocketArr) {
+                            final Socket connectionSocket = connectionSocketArr[0];
+                            
+                            if ((connectionSocket != null) && !connectionSocket.isClosed()) {
+                                connectionSocket.close();
+                            }
                         }
 
                         final long workingTime;
