@@ -25,11 +25,7 @@ public class BaseFunctionalTest {
         return server;
     }
   
-    protected Socket connect() {
-        try {
-            return new Socket(HOST, PORT);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected Socket connect() throws IOException {
+        return new Socket(HOST, PORT);
     }
 }
