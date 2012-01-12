@@ -46,7 +46,14 @@ public class ConnectionHandler implements Runnable {
             } while (!parser.hasMoreTokens());
 
             try {
-                String commandName = parser.nextToken();
+                int sleepTime = substitutor.getSleepTime();
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException ex) {
+                    System.err.println("ERROR: Sleeping was interrupted.");
+                }
+
+                final String commandName = parser.nextToken();
                 if (commandName.equals("GET")) {
                     performGetAction(parser, output);
                 } else if (commandName.equals("PUT")) {
@@ -142,7 +149,5 @@ public class ConnectionHandler implements Runnable {
             System.err.println("ERROR: Command SET requires arguments.");
             output.write("ERROR: Command SET requires arguments.\n");
         }
-
-        // todo to implement.
     }
 }
