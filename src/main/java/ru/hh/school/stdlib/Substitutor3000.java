@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class Substitutor3000 {
     private final Map<String, String> internalMap = new HashMap<String, String>();
+    private int timeSleep = 0;
 
     protected String transformValueString(final String valueString) {
         if (valueString == null) {
