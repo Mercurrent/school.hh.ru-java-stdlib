@@ -17,7 +17,7 @@ public class Server {
 
     public void run() throws IOException {
         synchronized (this) {
-            if (serverSocket != null) {
+            if (serverSocket == null) {
                 serverSocket = new ServerSocket(addr.getPort(), 0, addr.getAddress());
             } else {
                 System.err.println("ERROR: Duplicate running of the same server object.");
