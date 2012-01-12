@@ -3,7 +3,6 @@ package ru.hh.school.stdlib;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,38 +15,78 @@ import java.util.Set;
  */
 public class TimeoutTest extends BaseFunctionalTest {
     public static final int ASKING_PERIOD = 500;
-    public static final int MAX_CONNECTED_TIME = 11000;
+    public static final int ACCEPTABLE_ADDITIONAL_WAITING = 1000;
+    public static final int EXPECTED_TIMEOUT = 10000;
 
     @Test
     public void timeoutIndependence() throws InterruptedException {
-        final boolean[] successStatus = new boolean[1];
-        successStatus[0] = true;
-
+        final Server target = getNewWorkingServer();
+        
         final Set<Thread> threads = new HashSet<Thread>();
         for (int i = 0; i < 5; ++i) {
             final Thread currentThread = new Thread() {
                 public void run() {
                     try {
-                        final long startTime = System.currentTimeMillis();
+                        final Object waitingSyncObject = new Object();
+                        final Long[] workingTimeArr = new Long[1];
+                        
+                        final boolean[] finishStatus = new boolean[1];
 
-                        final Socket connectionSocket = connect();
+                        workingTimeArr[0] = -1L;
+                        
+                        new Thread() {
+                            public void run() {
+                                final long startTime = System.currentTimeMillis();
 
-                        while (!connectionSocket.isClosed()) {
-                            Thread.sleep(ASKING_PERIOD);
-                        }
+                                final Socket connectionSocket = connect();
 
-                        final long workingTime = System.currentTimeMillis() - startTime;
+                                while (!connectionSocket.isClosed()) {
+                                    try {
+                                        Thread.sleep(ASKING_PERIOD);
+                                    } catch (InterruptedException e) {
+                                        Assert.fail();
+                                    }
 
-                        if (workingTime > MAX_CONNECTED_TIME + ASKING_PERIOD) {
-                            synchronized (successStatus) {
-                                successStatus[0] = false;
+                                    synchronized (finishStatus) {
+                                        if (finishStatus[0]) {
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                synchronized (workingTimeArr) {
+                                    workingTimeArr[0] = System.currentTimeMillis() - startTime;
+                                }
+
+                                synchronized (waitingSyncObject) {
+                                    waitingSyncObject.notify();
+                                }
                             }
+                        }.start();
+
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (waitingSyncObject) {
+                            // Upper bound of time.
+                            waitingSyncObject.wait(EXPECTED_TIMEOUT + ACCEPTABLE_ADDITIONAL_WAITING + 2 * ASKING_PERIOD);
                         }
+
+                        final long workingTime;
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (workingTimeArr) {
+                            workingTime = workingTimeArr[0];
+                        }
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (finishStatus) {
+                            finishStatus[0] = true;
+                        }
+
+                        // Upper bound check.
+                        // workingTime is less than 0 iff the child process couldn't manage to finish in time.
+                        Assert.assertFalse(workingTime >= 0);
+                        // Lower bound check.
+                        Assert.assertFalse(workingTime < EXPECTED_TIMEOUT);
                     } catch (final Throwable ex) {
-                        ex.printStackTrace();
-                        synchronized (successStatus) {
-                            successStatus[0] = false;
-                        }
+                        Assert.fail();
                     }
                 }
             };
@@ -60,6 +99,6 @@ public class TimeoutTest extends BaseFunctionalTest {
             thread.join();
         }
 
-        Assert.assertTrue(successStatus[0]);
+        target.stop();
     }
 }
