@@ -1,38 +1,33 @@
 package ru.hh.school.stdlib;
 
+import org.junit.Assert;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class BaseFunctionalTest {
-    private static Server server;
-
-    protected BaseFunctionalTest() {
-        synchronized (BaseFunctionalTest.class) {
-            try {
-                if (server == null) {
-                    server = new Server(new InetSocketAddress("127.0.0.1", 0));
-                    new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                server.run();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }).start();
-                    Thread.sleep(100);
-                    System.out.printf("Server started on port %d%n", server.getPort());
+    public static final String HOST = "127.0.0.1";
+    public static final int PORT = 9129;
+    
+    protected Server getNewWorkingServer() {
+        final Server server = new Server(new InetSocketAddress(HOST, PORT));
+        new Thread() {
+            public void run() {
+                try {
+                    server.run();
+                } catch (IOException e) {
+                    Assert.fail();
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
-        }
+        }.start();
+
+        return server;
     }
   
     protected Socket connect() {
         try {
-            return new Socket("127.0.0.1", server.getPort());
+            return new Socket(HOST, PORT);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
