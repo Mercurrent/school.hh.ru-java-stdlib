@@ -11,6 +11,8 @@ import java.util.StringTokenizer;
  * Time: 0:08
  */
 public class ConnectionHandler implements Runnable {
+    public static final int COMMAND_WAITING_TIMEOUT = 10000;
+
     protected final Socket socket;
     protected final Substitutor3000 substitutor;
 
@@ -32,18 +34,51 @@ public class ConnectionHandler implements Runnable {
                 return;
             }
 
-            String currentLine;
-            StringTokenizer parser;
+            final Object waitingSyncObject = new Object();
+            final Object writingSyncObject = new Object();
 
-            do {
-                try {
-                    currentLine = input.readLine();
-                } catch (IOException ex) {
-                    System.err.println("ERROR: Unable to read from input stream of the given socket.");
-                    return;
+            final StringTokenizer[] parserHolder = new StringTokenizer[1];
+            new Thread() {
+                public void run() {
+                    do {
+                        final String currentLine;
+                        try {
+                            currentLine = input.readLine();
+                        } catch (IOException ex) {
+                            System.err.println("ERROR: Unable to read from input stream of the given socket.");
+                            return;
+                        }
+                        synchronized (writingSyncObject) {
+                            parserHolder[0] = new StringTokenizer(currentLine);
+                        }
+                    } while (!parserHolder[0].hasMoreTokens());
+
+                    synchronized (waitingSyncObject) {
+                        waitingSyncObject.notify();
+                    }
                 }
-                parser = new StringTokenizer(currentLine);
-            } while (!parser.hasMoreTokens());
+            }.start();
+
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (waitingSyncObject) {
+                try {
+                    waitingSyncObject.wait(COMMAND_WAITING_TIMEOUT);
+                } catch (InterruptedException ex) {
+                    System.err.println("ERROR: Waiting of the first command was interrupted.");
+                }
+            }
+
+            final StringTokenizer parser;
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (writingSyncObject) {
+                parser = parserHolder[0];
+            }
+
+            if (parser == null) {
+                // A timeout situation.
+                System.out.println("INFO: Waiting of the first command was timed out.");
+                return;
+            }
 
             try {
                 int sleepTime = substitutor.getSleepTime();
