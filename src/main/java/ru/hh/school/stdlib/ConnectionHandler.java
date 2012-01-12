@@ -80,8 +80,9 @@ public class ConnectionHandler implements Runnable {
             if ("".equals(answer) && parser.hasMoreTokens()) {
                 answer = parser.nextToken();
             }
-            output.write("VALUE");
+            output.write("VALUE\n");
             output.write(answer);
+            output.write("\n");
         } else {
             System.err.println("ERROR: Command GET needs a key.");
         }
@@ -93,9 +94,9 @@ public class ConnectionHandler implements Runnable {
         if (parser.hasMoreTokens()) {
             final String key = parser.nextToken();
             if (parser.hasMoreTokens()) {
-                final String value = parser.nextToken("");
+                final String value = parser.nextToken("").trim();
                 substitutor.put(key, value);
-                output.write("OK");
+                output.write("OK\n");
             } else {
                 System.err.println("ERROR: Command PUT needs value for key " + key + ".");
             }
@@ -106,6 +107,27 @@ public class ConnectionHandler implements Runnable {
 
     protected void performSetAction(final StringTokenizer parser, final Writer output) throws IOException {
         System.out.println("INFO: Set action is performing.");
+
+        if (parser.hasMoreTokens()) {
+            final String sleep = parser.nextToken();
+            if ("SLEEP".equals(sleep)) {
+                if (parser.hasMoreTokens()) {
+                    final String timeSleepString = parser.nextToken();
+                    try {
+                        int timeSleep = Integer.parseInt(timeSleepString);
+                    } catch (NumberFormatException ex) {
+                        System.err.println("ERROR: Command SET SLEEP requires an integer value.");
+                    }
+
+                } else {
+                    System.err.println("ERROR: Command SET SLEEP requires value.");
+                }
+            } else {
+                System.err.println("ERROR: Command SET doesn't exist.");
+            }
+        } else {
+
+        }
 
         // todo to implement.
     }
