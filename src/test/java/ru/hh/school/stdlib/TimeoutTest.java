@@ -9,6 +9,9 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,12 +23,8 @@ public class TimeoutTest extends BaseFunctionalTest {
     public static final int ACCEPTABLE_ADDITIONAL_WAITING = 1000;
     public static final int EXPECTED_TIMEOUT = 10000;
 
-    private void setFalseStatus(final boolean[] statusArray) {
-        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (statusArray) {
-            statusArray[0] = false;
-        }
-        
+    private void setFalseStatus(final AtomicBoolean statusArray) {
+        statusArray.set(false);
         Assert.fail();
     }
 
@@ -33,8 +32,8 @@ public class TimeoutTest extends BaseFunctionalTest {
     public void timeoutIndependence() throws InterruptedException {
         final Server target = getNewWorkingServer();
 
-        final boolean[] successStatus = new boolean[1];
-        successStatus[0] = true;
+        final AtomicBoolean successStatus = new AtomicBoolean();
+        successStatus.set(true);
         
         final Set<Thread> threads = new HashSet<Thread>();
         for (int i = 0; i < 5; ++i) {
@@ -43,10 +42,10 @@ public class TimeoutTest extends BaseFunctionalTest {
                     try {
                         final Object waitingSyncObject = new Object();
 
-                        final Socket[] connectionSocketArr = new Socket[1];
+                        final AtomicReference<Socket> connectionSocketHolder = new AtomicReference<Socket>();
                         
-                        final Long[] workingTimeArr = new Long[1];
-                        workingTimeArr[0] = -1L;
+                        final AtomicLong workingTime = new AtomicLong();
+                        workingTime.set(-1);
                         
                         new Thread() {
                             public void run() {
@@ -60,10 +59,8 @@ public class TimeoutTest extends BaseFunctionalTest {
                                     setFalseStatus(successStatus);
                                     throw new RuntimeException(ex);
                                 }
-                                synchronized (connectionSocketArr) {
-                                    connectionSocketArr[0] = connectionSocket;
-                                }
-
+                                connectionSocketHolder.set(connectionSocket);
+                                
                                 final BufferedReader input;
                                 try {
                                     input = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
@@ -82,10 +79,8 @@ public class TimeoutTest extends BaseFunctionalTest {
                                     // Going here means that socket's input stream is closed.
                                 }
 
-                                synchronized (workingTimeArr) {
-                                    workingTimeArr[0] = System.currentTimeMillis() - startTime;
-                                }
-
+                                workingTime.set(System.currentTimeMillis() - startTime);
+                                
                                 synchronized (waitingSyncObject) {
                                     waitingSyncObject.notify();
                                 }
@@ -98,28 +93,19 @@ public class TimeoutTest extends BaseFunctionalTest {
                             waitingSyncObject.wait(EXPECTED_TIMEOUT + ACCEPTABLE_ADDITIONAL_WAITING);
                         }
 
-                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                        synchronized (connectionSocketArr) {
-                            final Socket connectionSocket = connectionSocketArr[0];
-                            
-                            if ((connectionSocket != null) && !connectionSocket.isClosed()) {
-                                connectionSocket.close();
-                            }
+                        final Socket connectionSocket = connectionSocketHolder.get();
+                        
+                        if ((connectionSocket != null) && !connectionSocket.isClosed()) {
+                            connectionSocket.close();
                         }
-
-                        final long workingTime;
-                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                        synchronized (workingTimeArr) {
-                            workingTime = workingTimeArr[0];
-                        }
-
+                        
                         // Upper bound check.
                         // workingTime is less than 0 iff the child process couldn't manage to finish in time.
-                        if (workingTime < 0) {
+                        if (workingTime.get() < 0) {
                             setFalseStatus(successStatus);
                         }
                         // Lower bound check.
-                        if (workingTime < EXPECTED_TIMEOUT) {
+                        if (workingTime.get() < EXPECTED_TIMEOUT) {
                             setFalseStatus(successStatus);
                         }
                     } catch (final Exception ex) {
@@ -139,6 +125,6 @@ public class TimeoutTest extends BaseFunctionalTest {
 
         target.stop();
         
-        Assert.assertTrue(successStatus[0]);
+        Assert.assertTrue(successStatus.get());
     }
 }
