@@ -3,6 +3,7 @@ package ru.hh.school.stdlib;
 import java.io.*;
 import java.net.Socket;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,7 +37,7 @@ public class ConnectionHandler implements Runnable {
 
             final Object waitingSyncObject = new Object();
 
-            final StringTokenizer[] parserHolder = new StringTokenizer[1];
+            final AtomicReference<StringTokenizer> parserHolder = new AtomicReference<StringTokenizer>();
             new Thread() {
                 public void run() {
                     do {
@@ -47,10 +48,8 @@ public class ConnectionHandler implements Runnable {
                             System.err.println("ERROR: Unable to read from input stream of the given socket.");
                             return;
                         }
-                        synchronized (parserHolder) {
-                            parserHolder[0] = new StringTokenizer(currentLine);
-                        }
-                    } while (!parserHolder[0].hasMoreTokens());
+                        parserHolder.set(new StringTokenizer(currentLine));
+                    } while (!parserHolder.get().hasMoreTokens());
 
                     synchronized (waitingSyncObject) {
                         waitingSyncObject.notify();
@@ -67,11 +66,7 @@ public class ConnectionHandler implements Runnable {
                 }
             }
 
-            final StringTokenizer parser;
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (parserHolder) {
-                parser = parserHolder[0];
-            }
+            final StringTokenizer parser = parserHolder.get();
 
             if (parser == null) {
                 // A timeout situation.
