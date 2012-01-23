@@ -2,16 +2,24 @@ package ru.hh.school.stdlib;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConnectionHandler implements Runnable {
     public static final int COMMAND_WAITING_TIMEOUT = 10000;
 
     protected final Socket socket;
     protected final Substitutor3000 substitutor;
+
+    private final static String patternForGetCommand = "(GET)\\W+([^\\W]+)(?:\\W+(.+))?";
+    private final static String patternForSetCommand = "(PUT)\\W+([^\\W]+)\\W+(.+)";
+    private final static String patternForSetSleepCommand = "(SET)\\W+SLEEP\\W+([1-9]\\d{0,7}+)";
+    
+    private final static Pattern patternForAllCommands = Pattern.compile(
+            "(?:" + patternForGetCommand + ")|(?:" + patternForSetCommand + ")|(?:" + patternForSetSleepCommand + ")");
 
     private synchronized void closeSocket(Socket socket) {
         if (socket != null && !socket.isClosed()) {
@@ -52,17 +60,15 @@ public class ConnectionHandler implements Runnable {
                 }
             }, COMMAND_WAITING_TIMEOUT);
 
-            StringTokenizer parser;
+            String currentLine;
             do {
-                final String currentLine;
                 try {
                     currentLine = input.readLine();
                 } catch (IOException ex) {
                     System.err.println("ERROR: Unable to read from input stream of the given socket.");
                     return;
                 }
-                parser = (new StringTokenizer(currentLine));
-            } while (!parser.hasMoreTokens());
+            } while (!currentLine.isEmpty());
             
             if (canThreadRun.getAndSet(false)) {
                 timer.cancel();
@@ -78,16 +84,28 @@ public class ConnectionHandler implements Runnable {
                     System.err.println("ERROR: Sleeping was interrupted.");
                 }
 
-                final String commandName = parser.nextToken();
-                if (commandName.equals("GET")) {
-                    performGetAction(parser, output);
-                } else if (commandName.equals("PUT")) {
-                    performPutAction(parser, output);
-                } else if (commandName.equals("SET")) {
-                    performSetAction(parser, output);
+                final Matcher matcher = patternForAllCommands.matcher(currentLine);
+                if (matcher.matches()) {
+                    final String commandId = matcher.group(1);
+
+                    if ("GET".equalsIgnoreCase(commandId)) {
+                        final String key = matcher.group(2);
+                        final String defaultValue = (matcher.groupCount() >= 3) ? matcher.group(3) : null;
+
+                        performGetAction(key, defaultValue, output);
+                    } else if ("PUT".equalsIgnoreCase(commandId)) {
+                        final String key = matcher.group(2);
+                        final String value = matcher.group(3);
+                        
+                        performPutAction(key, value, output);
+                    } else {
+                        final int time = Integer.parseInt(matcher.group(2));
+                        
+                        performSetAction(time, output);
+                    }
                 } else {
-                    System.err.println("ERROR: Command " + commandName + " doesn't exist.");
-                    output.write("ERROR: Command " + commandName + " doesn't exist.\n");
+                    System.err.println("ERROR: Command \"" + currentLine + "\" was unrecognized.");
+                    output.write("ERROR: Command \"" + currentLine + "\" was unrecognized.");
                 }
                 output.flush();
             } catch (IOException ex) {
@@ -99,76 +117,29 @@ public class ConnectionHandler implements Runnable {
          }
     }
 
-    protected void performGetAction(final StringTokenizer parser, final Writer output) throws IOException {
+    protected void performGetAction(final String key, final String defaultValue, final Writer output) throws IOException {
         System.out.println("INFO: Get action is performing.");
         
-        if (parser.hasMoreTokens()) {
-            final String key = parser.nextToken();
-            String answer = substitutor.get(key);
-            if ("".equals(answer) && parser.hasMoreTokens()) {
-                answer = parser.nextToken();
-            }
-            output.write("VALUE\n");
-            output.write(answer);
-            output.write("\n");
-        } else {
-            System.err.println("ERROR: Command GET needs a key.");
-            output.write("ERROR: Command GET needs a key.\n");
+        String answer = substitutor.get(key);
+        if ("".equals(answer) && defaultValue != null) {
+            answer = defaultValue;            
         }
+        output.write("VALUE\n");
+        output.write(answer);
+        output.write("\n");
     }
 
-    protected void performPutAction(final StringTokenizer parser, final Writer output) throws IOException {
+    protected void performPutAction(final String key, final String value, final Writer output) throws IOException {
         System.out.println("INFO: Put action is performing.");
 
-        if (parser.hasMoreTokens()) {
-            final String key = parser.nextToken();
-            if (parser.hasMoreTokens()) {
-                final String value = parser.nextToken("").trim();
-                substitutor.put(key, value);
-                output.write("OK\n");
-            } else {
-                System.err.println("ERROR: Command PUT needs value for key " + key + ".");
-                output.write("ERROR: Command PUT needs value for key " + key + ".\n");
-            }
-        } else {
-            System.err.println("ERROR: Command PUT needs arguments.");
-            output.write("ERROR: Command PUT needs arguments.\n");
-        }
+        substitutor.put(key, value);
+        output.write("OK\n");
     }
 
-    protected void performSetAction(final StringTokenizer parser, final Writer output) throws IOException {
+    protected void performSetAction(final int timeSleep, final Writer output) throws IOException {
         System.out.println("INFO: Set action is performing.");
 
-        if (parser.hasMoreTokens()) {
-            final String sleep = parser.nextToken();
-            if ("SLEEP".equals(sleep)) {
-                if (parser.hasMoreTokens()) {
-                    final String timeSleepString = parser.nextToken();
-                    try {
-                        int timeSleep = Integer.parseInt(timeSleepString);
-                        if (timeSleep < 0) {
-                            System.err.println("ERROR: Command SET SLEEP requires a positive integer value.");
-                            output.write("ERROR: Command SET SLEEP requires a positive integer value.\n");
-                        } else {
-                            substitutor.setSleepTime(timeSleep);
-                            output.write("OK\n");
-                        }
-                    } catch (NumberFormatException ex) {
-                        System.err.println("ERROR: Command SET SLEEP requires an integer value.");
-                        output.write("ERROR: Command SET SLEEP requires an integer value.\n");
-                    }
-
-                } else {
-                    System.err.println("ERROR: Command SET SLEEP requires value.");
-                    output.write("ERROR: Command SET SLEEP requires value.\n");
-                }
-            } else {
-                System.err.println("ERROR: Command SET " + sleep + " doesn't exist.");
-                output.write("ERROR: Command SET " + sleep + " doesn't exist.\n");
-            }
-        } else {
-            System.err.println("ERROR: Command SET requires arguments.");
-            output.write("ERROR: Command SET requires arguments.\n");
-        }
+        substitutor.setSleepTime(timeSleep);
+        output.write("OK\n");
     }
 }
