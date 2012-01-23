@@ -68,8 +68,8 @@ public class ConnectionHandler implements Runnable {
                     System.err.println("ERROR: Unable to read from input stream of the given socket.");
                     return;
                 }
-            } while (!currentLine.isEmpty());
-            
+            } while (currentLine.isEmpty());
+
             if (canThreadRun.getAndSet(false)) {
                 timer.cancel();
             } else {
@@ -121,7 +121,7 @@ public class ConnectionHandler implements Runnable {
         System.out.println("INFO: Get action is performing.");
         
         String answer = substitutor.get(key);
-        if ("".equals(answer) && defaultValue != null) {
+        if (answer.isEmpty() && defaultValue != null) {
             answer = defaultValue;            
         }
         output.write("VALUE\n");
