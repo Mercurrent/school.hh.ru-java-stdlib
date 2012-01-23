@@ -3,19 +3,24 @@ package ru.hh.school.stdlib;
 import java.io.*;
 import java.net.Socket;
 import java.util.StringTokenizer;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Created by IntelliJ IDEA.
- * User: Tiana
- * Date: 09.01.12
- * Time: 0:08
- */
 public class ConnectionHandler implements Runnable {
     public static final int COMMAND_WAITING_TIMEOUT = 10000;
 
     protected final Socket socket;
     protected final Substitutor3000 substitutor;
+
+    private synchronized void closeSocket(Socket socket) {
+        if (socket != null && !socket.isClosed()) {
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
 
     public ConnectionHandler(final Socket socket, final Substitutor3000 substitutor) {
         this.socket = socket;
@@ -35,42 +40,33 @@ public class ConnectionHandler implements Runnable {
                 return;
             }
 
-            final Object waitingSyncObject = new Object();
+            final AtomicBoolean canThreadRun = new AtomicBoolean(true);
 
-            final AtomicReference<StringTokenizer> parserHolder = new AtomicReference<StringTokenizer>();
-            new Thread() {
+            final Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
                 public void run() {
-                    do {
-                        final String currentLine;
-                        try {
-                            currentLine = input.readLine();
-                        } catch (IOException ex) {
-                            System.err.println("ERROR: Unable to read from input stream of the given socket.");
-                            return;
-                        }
-                        parserHolder.set(new StringTokenizer(currentLine));
-                    } while (!parserHolder.get().hasMoreTokens());
-
-                    synchronized (waitingSyncObject) {
-                        waitingSyncObject.notify();
+                    if (canThreadRun.getAndSet(false)) {
+                        System.out.println("INFO: Waiting of the first command was timed out.");
+                        closeSocket(socket);
                     }
                 }
-            }.start();
+            }, COMMAND_WAITING_TIMEOUT);
 
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (waitingSyncObject) {
+            StringTokenizer parser;
+            do {
+                final String currentLine;
                 try {
-                    waitingSyncObject.wait(COMMAND_WAITING_TIMEOUT);
-                } catch (InterruptedException ex) {
-                    System.err.println("ERROR: Waiting of the first command was interrupted.");
+                    currentLine = input.readLine();
+                } catch (IOException ex) {
+                    System.err.println("ERROR: Unable to read from input stream of the given socket.");
+                    return;
                 }
-            }
-
-            final StringTokenizer parser = parserHolder.get();
-
-            if (parser == null) {
-                // A timeout situation.
-                System.out.println("INFO: Waiting of the first command was timed out.");
+                parser = (new StringTokenizer(currentLine));
+            } while (!parser.hasMoreTokens());
+            
+            if (canThreadRun.getAndSet(false)) {
+                timer.cancel();
+            } else {
                 return;
             }
 
@@ -98,13 +94,9 @@ public class ConnectionHandler implements Runnable {
                 System.err.println("ERROR: Unable to write to the output stream of the socket.");
             }
         } finally {
-            try {
-                System.out.println("INFO: Connection with " + socket.getRemoteSocketAddress() + " is closing.");
-
-                socket.close();
-            } catch (IOException ignored) {
-            }
-        }
+            System.out.println("INFO: Connection with " + socket.getRemoteSocketAddress() + " is closing.");
+            closeSocket(socket);
+         }
     }
 
     protected void performGetAction(final StringTokenizer parser, final Writer output) throws IOException {
