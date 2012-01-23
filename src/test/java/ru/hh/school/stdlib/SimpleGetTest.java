@@ -10,17 +10,21 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class SimpleGetTest extends BaseFunctionalTest {
-  @Test
-  public void simpleGet() throws IOException {
-    Socket s = connect();
+    @Test
+    public void simpleGet() throws IOException {
+        Server server = getNewWorkingServer();
+      
+        Socket s = connect();
 
-    Writer out = new PrintWriter(s.getOutputStream());
-    out.append("GET k1\n").flush();
-    BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-    
-    Assert.assertEquals("VALUE", in.readLine());
-    Assert.assertEquals("", in.readLine());
-    
-    s.close();
-  }
+        Writer out = new PrintWriter(s.getOutputStream());
+        out.append("GET k1\n").flush();
+        BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        
+        Assert.assertEquals("VALUE", in.readLine());
+        Assert.assertEquals("", in.readLine());
+        
+        s.close();
+
+        server.stop();
+    }
 }
