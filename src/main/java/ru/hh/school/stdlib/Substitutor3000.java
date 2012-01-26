@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Substitutor3000 {
-    private final static Pattern patternForBraces = Pattern.compile("\\$\\{.*\\}");
+    private final static Pattern patternForBraces = Pattern.compile("\\$\\{[^}]*\\}");
     private final Map<String, String> internalMap = new HashMap<String, String>();
     private int sleepTime = 0;
 
@@ -30,7 +30,7 @@ public class Substitutor3000 {
         final Matcher matcher = patternForBraces.matcher(valueString);
         while (matcher.find()) {
             result.append(valueString, fromIndex, matcher.start());
-            fromIndex = matcher.end() + 1;
+            fromIndex = matcher.end();
             final String argToReplace = matcher.group();
             String replacingValue = internalMap.get(argToReplace.substring(2, argToReplace.length() - 1));
             if (replacingValue != null) {
