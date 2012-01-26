@@ -2,8 +2,11 @@ package ru.hh.school.stdlib;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Substitutor3000 {
+    private final static Pattern patternForBraces = Pattern.compile("\\$\\{.*\\}");
     private final Map<String, String> internalMap = new HashMap<String, String>();
     private int sleepTime = 0;
 
@@ -21,27 +24,20 @@ public class Substitutor3000 {
         if (valueString == null) {
             return "";
         }
-
-        final StringBuilder result = new StringBuilder();
-
+        
         int fromIndex = 0;
-
-        int openingBraceIndex = valueString.indexOf("${", fromIndex);
-        while (openingBraceIndex != -1) {
-            result.append(valueString, fromIndex, openingBraceIndex);
-            int closingBraceIndex = valueString.indexOf("}", fromIndex);
-            if (closingBraceIndex != -1) {
-                String nextPiece = internalMap.get(valueString.substring(openingBraceIndex + 2, closingBraceIndex));
-                if (nextPiece != null) {
-                    result.append(nextPiece);
-                }
-                fromIndex = closingBraceIndex + 1;
-            } else {
-                result.append(valueString.substring(openingBraceIndex));
-                fromIndex = valueString.length();
+        final StringBuilder result = new StringBuilder();
+        final Matcher matcher = patternForBraces.matcher(valueString);
+        while (matcher.find()) {
+            result.append(valueString, fromIndex, matcher.start());
+            fromIndex = matcher.end() + 1;
+            final String argToReplace = matcher.group();
+            String replacingValue = internalMap.get(argToReplace.substring(2, argToReplace.length() - 1));
+            if (replacingValue != null) {
+                result.append(replacingValue);
             }
-            openingBraceIndex = valueString.indexOf("${", fromIndex);
         }
+
         result.append(valueString, fromIndex, valueString.length());
 
         return result.toString();

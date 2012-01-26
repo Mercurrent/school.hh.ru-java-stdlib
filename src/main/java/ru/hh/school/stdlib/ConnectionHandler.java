@@ -119,7 +119,7 @@ public class ConnectionHandler implements Runnable {
 
     protected void performGetAction(final String key, final String defaultValue, final Writer output) throws IOException {
         System.out.println("INFO: Get action is performing.");
-        
+
         String answer = substitutor.get(key);
         if (answer.isEmpty() && defaultValue != null) {
             answer = defaultValue;            
